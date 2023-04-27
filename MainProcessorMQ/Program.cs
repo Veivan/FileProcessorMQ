@@ -7,6 +7,8 @@ namespace MainProcessorMQ
 	{
 		static void Main(string[] args)
 		{
+			FileProcessor fileProcessor = new FileProcessor();
+
 			var queueName = "fpstack";
 
 			// Connect to RabbitMQ
@@ -19,15 +21,7 @@ namespace MainProcessorMQ
 			var consumer = new RabbitMQ.Client.Events.EventingBasicConsumer(channel);
 			consumer.Received += (sender, eventArgs) =>
 			{
-				var msg = Encoding.UTF8.GetString(eventArgs.Body.ToArray());
-				IBasicProperties props = eventArgs.BasicProperties;
-				var sequence = Encoding.UTF8.GetString(eventArgs.BasicProperties.Headers["sequence"] as byte[]);
-				var position = Encoding.UTF8.GetString(eventArgs.BasicProperties.Headers["position"] as byte[]);
-				var end = Encoding.UTF8.GetString(eventArgs.BasicProperties.Headers["end"] as byte[]);
-				Console.WriteLine("sequence=" + sequence);
-				Console.WriteLine("position=" + position);
-				Console.WriteLine("end=" + end);
-				//Console.WriteLine(msg);
+				fileProcessor.Process(eventArgs.BasicProperties.Headers, eventArgs.Body.ToArray());
 			};
 
 			channel.BasicConsume(queueName, true, consumer);
