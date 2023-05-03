@@ -7,30 +7,24 @@ namespace MainProcessorMQ
 	{
 		static void Main(string[] args)
 		{
-			FileProcessor fileProcessor = new FileProcessor();
+			string path = args[0];
+			//string path = @"C:\TEMP\mq\output";
 
-			var queueName = "fpstack";
+			if (string.IsNullOrEmpty(path) || !Directory.Exists(path))
+				throw new ArgumentNullException(path);
 
-			// Connect to RabbitMQ
-			var factory = new ConnectionFactory();
-			factory.Uri = new Uri("amqp://guest:guest@localhost:5672");
-			var connection = factory.CreateConnection();
-			var channel = connection.CreateModel();
+			FileProcessor fileProcessor = new FileProcessor(path);
 
-			// Subscribe to incoming messages
-			var consumer = new RabbitMQ.Client.Events.EventingBasicConsumer(channel);
-			consumer.Received += (sender, eventArgs) =>
+			ConsumerMQ consumer = new ConsumerMQ(fileProcessor);
+			try
 			{
-				fileProcessor.Process(eventArgs.BasicProperties.Headers, eventArgs.Body.ToArray());
-			};
-
-			channel.BasicConsume(queueName, true, consumer);
-
-			Console.ReadLine();
-
-			// Disconnect
-			channel.Close();
-			connection.Close();
+				consumer.Init();
+				Console.ReadLine();
+			}
+			finally
+			{
+				consumer.Disconnect();
+			}
 		}
 	}
 }
